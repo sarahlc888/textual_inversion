@@ -111,12 +111,12 @@ class BERTEmbedder(AbstractEncoder):
                                               attn_layers=Encoder(dim=n_embed, depth=n_layer),
                                               emb_dropout=embedding_dropout)
 
-    def forward(self, text, embedding_manager=None):
+    def forward(self, text, embedding_manager=None, base_string=None):
         if self.use_tknz_fn:
             tokens = self.tknz_fn(text)#.to(self.device)
         else:
             tokens = text
-        z = self.transformer(tokens, return_embeddings=True, embedding_manager=embedding_manager)
+        z = self.transformer(tokens, return_embeddings=True, embedding_manager=embedding_manager, base_string=base_string)
         return z
 
     def encode(self, text, **kwargs):

@@ -38,9 +38,12 @@ class EmbeddingManager(nn.Module):
             per_image_tokens=False,
             num_vectors_per_token=1,
             progressive_words=False,
+            delta_mode=False,
             **kwargs
     ):
         super().__init__()
+
+        self.delta_mode = delta_mode # check whether learning new emb for the placeholder word of or delta
 
         self.string_to_token_dict = {}
         
@@ -71,25 +74,33 @@ class EmbeddingManager(nn.Module):
             
             token = get_token_for_string(placeholder_string)
 
-            if initializer_words and idx < len(initializer_words):
-                init_word_token = get_token_for_string(initializer_words[idx])
+            if delta_mode:
 
-                with torch.no_grad():
-                    init_word_embedding = get_embedding_for_tkn(init_word_token.cpu())
+                # Rather than directly training for the new concept word embedding,
+                # train a delta between the "initial word embedding" and that desired new concept 
+                # (this is different because the 'initial word embedding' should VARY between training examples)
+                # therefore we ignore 
+                token_params_delta = torch.nn.Parameter(torch.zeros(size=(num_vectors_per_token, token_dim), requires_grad=True))
+                
+                self.string_to_token_dict[placeholder_string] = token
+                self.string_to_param_dict[placeholder_string] = token_params_delta
 
-                token_params = torch.nn.Parameter(init_word_embedding.unsqueeze(0).repeat(num_vectors_per_token, 1), requires_grad=True)
-                self.initial_embeddings[placeholder_string] = torch.nn.Parameter(init_word_embedding.unsqueeze(0).repeat(num_vectors_per_token, 1), requires_grad=False)
-            else:
-                token_params = torch.nn.Parameter(torch.rand(size=(num_vectors_per_token, token_dim), requires_grad=True))
-            
-            self.string_to_token_dict[placeholder_string] = token
-            self.string_to_param_dict[placeholder_string] = token_params
+                self.initial_embeddings = torch.nn.Parameter(torch.zeros(size=(num_vectors_per_token, token_dim), requires_grad=False))
+
+            # TODO: put the other stuff back
+        self.get_token_for_string = get_token_for_string
+        self.get_embedding_for_tkn = get_embedding_for_tkn
 
     def forward(
             self,
             tokenized_text,
             embedded_text,
+            base_string=None # TODO: make sure fw call is used like this
     ):
+        # added additional arg `base_string` for the current sample's base embedding when in delta mode
+        if self.delta_mode and base_string is None:
+            print("Error: no base_string specified but embedding manager delta_mode = True")
+
         b, n, device = *tokenized_text.shape, tokenized_text.device
 
         for placeholder_string, placeholder_token in self.string_to_token_dict.items():
@@ -98,6 +109,12 @@ class EmbeddingManager(nn.Module):
 
             if self.max_vectors_per_token == 1: # If there's only one vector per token, we can do a simple replacement
                 placeholder_idx = torch.where(tokenized_text == placeholder_token.to(device))
+                if base_string:
+                    # base_string should be a string to start out with
+                    base_emb_token = self.get_token_for_string(base_string)
+                    base_emb_emb = self.get_embedding_for_tkn(base_emb_token)
+
+                    embedded_text[placeholder_idx] = base_emb_emb + placeholder_embedding
                 embedded_text[placeholder_idx] = placeholder_embedding
             else: # otherwise, need to insert and keep track of changing indices
                 if self.progressive_words:
@@ -148,7 +165,7 @@ class EmbeddingManager(nn.Module):
         return self.string_to_param_dict.parameters()
 
     def embedding_to_coarse_loss(self):
-        
+
         loss = 0.
         num_embeddings = len(self.initial_embeddings)
 

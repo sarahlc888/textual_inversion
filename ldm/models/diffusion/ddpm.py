@@ -588,10 +588,12 @@ class LatentDiffusion(DDPM):
             raise NotImplementedError(f"encoder_posterior of type '{type(encoder_posterior)}' not yet implemented")
         return self.scale_factor * z
 
-    def get_learned_conditioning(self, c):
+    def get_learned_conditioning(self, c, base_string=None):
+        # pass a base_string here and through all successive modules into embedding_manager
+        # that applies to the placeholder string within c
         if self.cond_stage_forward is None:
             if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
-                c = self.cond_stage_model.encode(c, embedding_manager=self.embedding_manager)
+                c = self.cond_stage_model.encode(c, embedding_manager=self.embedding_manager, base_string=base_string)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
             else:
@@ -693,6 +695,7 @@ class LatentDiffusion(DDPM):
     @torch.no_grad()
     def get_input(self, batch, k, return_first_stage_outputs=False, force_c_encode=False,
                   cond_key=None, return_original_cond=False, bs=None):
+        # k should be first_stage_key = "image"
         x = super().get_input(batch, k)
         if bs is not None:
             x = x[:bs]
@@ -700,12 +703,12 @@ class LatentDiffusion(DDPM):
         encoder_posterior = self.encode_first_stage(x)
         z = self.get_first_stage_encoding(encoder_posterior).detach()
 
-        if self.model.conditioning_key is not None:
+        if self.model.conditioning_key is not None: # should always be used bc conditioning_key=crossattn
             if cond_key is None:
-                cond_key = self.cond_stage_key
-            if cond_key != self.first_stage_key:
+                cond_key = self.cond_stage_key # "caption" in default
+            if cond_key != self.first_stage_key: # "caption" != "image"
                 if cond_key in ['caption', 'coordinates_bbox']:
-                    xc = batch[cond_key]
+                    xc = batch[cond_key] # retrieve the caption value
                 elif cond_key == 'class_label':
                     xc = batch
                 else:
@@ -713,13 +716,14 @@ class LatentDiffusion(DDPM):
             else:
                 xc = x
             if not self.cond_stage_trainable or force_c_encode:
+                print("WARNING: self.get_learned_conditioning called in unexpected way")
                 if isinstance(xc, dict) or isinstance(xc, list):
                     # import pudb; pudb.set_trace()
                     c = self.get_learned_conditioning(xc)
                 else:
                     c = self.get_learned_conditioning(xc.to(self.device))
             else:
-                c = xc
+                c = xc # c is the caption value now
             if bs is not None:
                 c = c[:bs]
 
@@ -740,6 +744,15 @@ class LatentDiffusion(DDPM):
             out.extend([x, xrec])
         if return_original_cond:
             out.append(xc)
+
+        # add the base embedding for the batch, or None
+        if "base_string" in batch:
+            base_strings = batch["base_string"]
+            if bs is not None:
+                base_strings = base_strings[:bs]
+            out.append(base_strings)
+        else:
+            out.append(None)
         return out
 
     @torch.no_grad()
@@ -903,8 +916,10 @@ class LatentDiffusion(DDPM):
             return self.first_stage_model.encode(x)
 
     def shared_step(self, batch, **kwargs):
-        x, c = self.get_input(batch, self.first_stage_key)
-        loss = self(x, c)
+        # if the batch contains base embedding information, get_input will use it
+        x, c, b = self.get_input(batch, self.first_stage_key)
+        loss = self(x, c, base_string=b)
+
         return loss
 
     def forward(self, x, c, *args, **kwargs):
@@ -912,7 +927,10 @@ class LatentDiffusion(DDPM):
         if self.model.conditioning_key is not None:
             assert c is not None
             if self.cond_stage_trainable:
-                c = self.get_learned_conditioning(c)
+                if 'base_string' in kwargs:
+                    c = self.get_learned_conditioning(c, base_string=kwargs['base_string'])
+                else:
+                    c = self.get_learned_conditioning(c)
             if self.shorten_cond_schedule:  # TODO: drop this option
                 tc = self.cond_ids[t].to(self.device)
                 c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
@@ -1303,7 +1321,7 @@ class LatentDiffusion(DDPM):
         use_ddim = ddim_steps is not None
 
         log = dict()
-        z, c, x, xrec, xc = self.get_input(batch, self.first_stage_key,
+        z, c, x, xrec, xc, b = self.get_input(batch, self.first_stage_key,
                                            return_first_stage_outputs=True,
                                            force_c_encode=True,
                                            return_original_cond=True,

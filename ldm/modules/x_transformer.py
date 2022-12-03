@@ -605,6 +605,7 @@ class TransformerWrapper(nn.Module):
             return_attn=False,
             mems=None,
             embedding_manager=None,
+            base_string=None,
             **kwargs
     ):
         b, n, device, num_mem = *x.shape, x.device, self.num_memory_tokens
@@ -612,7 +613,7 @@ class TransformerWrapper(nn.Module):
         embedded_x = self.token_emb(x)
         
         if embedding_manager:
-            x = embedding_manager(x, embedded_x)
+            x = embedding_manager(x, embedded_x, base_string=base_string) # pass base_string (could be none)
         else:
             x = embedded_x
 

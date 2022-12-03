@@ -142,11 +142,12 @@ class PersonalizedBase(Dataset):
                  center_crop=False,
                  mixing_prob=0.25,
                  coarse_class_text=None,
+                 has_base_embs=False,
                  ):
-
         self.data_root = data_root
-
-        self.image_paths = [os.path.join(self.data_root, file_path) for file_path in os.listdir(self.data_root)]
+        # if `has_base_embs`, expect a txt file that maps each image to an initial word embedding 
+        self.has_base_embs = has_base_embs
+        self.image_paths = [os.path.join(self.data_root, file_path) for file_path in os.listdir(self.data_root) if file_path.split('.')[-1] != 'txt']
 
         # self._length = len(self.image_paths)
         self.num_images = len(self.image_paths)
@@ -174,12 +175,28 @@ class PersonalizedBase(Dataset):
                               }[interpolation]
         self.flip = transforms.RandomHorizontalFlip(p=flip_p)
 
+        if has_base_embs:
+            # load initial word embeddings. txt file should map image paths to tokens (a single word), separated by tab
+            image_description_paths = [os.path.join(self.data_root, file_path) for file_path in os.listdir(self.data_root) if file_path.split('.')[-1] == 'txt']
+            if len(image_description_paths) != 1:
+                print("Error: could not determine image initial embeddings, found paths", image_description_paths)
+            
+            self.image_base_strings = {}
+            with open(image_description_paths[0], 'r') as fh:
+                for line in fh.readlines():
+                    vals = line.split()
+                    self.image_base_strings[vals[0]] = vals[1]
+                
     def __len__(self):
         return self._length
 
     def __getitem__(self, i):
+        # returns an example with 'image' and 'caption' keys. added 'base_embedding' key that
+        # retrieves the initial word embedding for the placeholder for the image
+        cur_img_path = self.image_paths[i % self.num_images]
+
         example = {}
-        image = Image.open(self.image_paths[i % self.num_images])
+        image = Image.open(cur_img_path)
 
         if not image.mode == "RGB":
             image = image.convert("RGB")
@@ -211,4 +228,8 @@ class PersonalizedBase(Dataset):
         image = self.flip(image)
         image = np.array(image).astype(np.uint8)
         example["image"] = (image / 127.5 - 1.0).astype(np.float32)
+
+        if self.has_base_embs:
+            example["base_string"] = self.image_base_strings[cur_img_path]
+
         return example
