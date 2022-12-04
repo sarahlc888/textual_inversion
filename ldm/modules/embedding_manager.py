@@ -55,6 +55,8 @@ class EmbeddingManager(nn.Module):
         self.progressive_counter = 0
 
         self.max_vectors_per_token = num_vectors_per_token
+        if num_vectors_per_token and delta_mode:
+            print("WARNING: num_vectors_per_token > 1 is not supported in delta_mode")
 
         if hasattr(embedder, 'tokenizer'): # using Stable Diffusion's CLIP encoder
             self.is_clip = True
@@ -95,13 +97,24 @@ class EmbeddingManager(nn.Module):
             self,
             tokenized_text,
             embedded_text,
-            base_string=None # TODO: make sure fw call is used like this
+            base_string=None,
     ):
-        # added additional arg `base_string` for the current sample's base embedding when in delta mode
+        # added additional arg `base_string` for the current sample's base string when in delta mode
+        # which will be used to create its embedding
         if self.delta_mode and base_string is None:
             print("Error: no base_string specified but embedding manager delta_mode = True")
 
         b, n, device = *tokenized_text.shape, tokenized_text.device
+        # print("@debug: embedding manager forward()")
+        # print("@debug: b", b, "n", n)
+        # print("@debug: self.string_to_token_dict.items()", self.string_to_token_dict.items())
+
+        if base_string is not None: # convert base_string string to embeddings
+            # TODO: memoize for efficiency
+            base_str_tokens = [self.get_token_for_string(x) for x in base_string]
+            base_str_tokens = torch.flatten(torch.as_tensor(base_str_tokens)).to(device)
+            base_str_embs = self.get_embedding_for_tkn(base_str_tokens)
+
 
         for placeholder_string, placeholder_token in self.string_to_token_dict.items():
 
@@ -109,13 +122,10 @@ class EmbeddingManager(nn.Module):
 
             if self.max_vectors_per_token == 1: # If there's only one vector per token, we can do a simple replacement
                 placeholder_idx = torch.where(tokenized_text == placeholder_token.to(device))
-                if base_string:
-                    # base_string should be a string to start out with
-                    base_emb_token = self.get_token_for_string(base_string)
-                    base_emb_emb = self.get_embedding_for_tkn(base_emb_token)
-
-                    embedded_text[placeholder_idx] = base_emb_emb + placeholder_embedding
-                embedded_text[placeholder_idx] = placeholder_embedding
+                if base_string is not None:
+                    embedded_text[placeholder_idx] = base_str_embs[placeholder_idx[0]] + placeholder_embedding
+                else:
+                    embedded_text[placeholder_idx] = placeholder_embedding
             else: # otherwise, need to insert and keep track of changing indices
                 if self.progressive_words:
                     self.progressive_counter += 1

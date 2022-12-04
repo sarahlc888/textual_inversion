@@ -41,6 +41,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--base_word",
+        type=str,
+        nargs="?",
+        default=None,
+        help="the baseword to use for any specified placeholder strings"
+    )
+
+    parser.add_argument(
         "--outdir",
         type=str,
         nargs="?",
@@ -131,6 +139,7 @@ if __name__ == "__main__":
     outpath = opt.outdir
 
     prompt = opt.prompt
+    base_word = opt.base_word 
 
 
     sample_path = os.path.join(outpath, "samples")
@@ -144,7 +153,11 @@ if __name__ == "__main__":
             if opt.scale != 1.0:
                 uc = model.get_learned_conditioning(opt.n_samples * [""])
             for n in trange(opt.n_iter, desc="Sampling"):
-                c = model.get_learned_conditioning(opt.n_samples * [prompt])
+                # pass in base strings here
+                c = model.get_learned_conditioning(
+                    opt.n_samples * [prompt], 
+                    base_string=opt.n_samples * [base_word]
+                )
                 shape = [4, opt.H//8, opt.W//8]
                 samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                  conditioning=c,

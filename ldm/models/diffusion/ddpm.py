@@ -696,6 +696,7 @@ class LatentDiffusion(DDPM):
     def get_input(self, batch, k, return_first_stage_outputs=False, force_c_encode=False,
                   cond_key=None, return_original_cond=False, bs=None):
         # k should be first_stage_key = "image"
+        # print("@debug: get_input()")
         x = super().get_input(batch, k)
         if bs is not None:
             x = x[:bs]
@@ -917,12 +918,16 @@ class LatentDiffusion(DDPM):
 
     def shared_step(self, batch, **kwargs):
         # if the batch contains base embedding information, get_input will use it
-        x, c, b = self.get_input(batch, self.first_stage_key)
-        loss = self(x, c, base_string=b)
+        # print("@debug: shared_step()")
+        x, c, base_str = self.get_input(batch, self.first_stage_key)
+        loss = self(x, c, base_string=base_str)
 
         return loss
 
     def forward(self, x, c, *args, **kwargs):
+        # print("@debug: forward()")
+        # if 'base_string' in kwargs:
+        #     print("@debug: forward() base_string is", kwargs['base_string'])
         t = torch.randint(0, self.num_timesteps, (x.shape[0],), device=self.device).long()
         if self.model.conditioning_key is not None:
             assert c is not None
@@ -1068,7 +1073,7 @@ class LatentDiffusion(DDPM):
         kl_prior = normal_kl(mean1=qt_mean, logvar1=qt_log_variance, mean2=0.0, logvar2=0.0)
         return mean_flat(kl_prior) / np.log(2.0)
 
-    def p_losses(self, x_start, cond, t, noise=None):
+    def p_losses(self, x_start, cond, t, noise=None, **kwargs):
         noise = default(noise, lambda: torch.randn_like(x_start))
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
         model_output = self.apply_model(x_noisy, t, cond)
@@ -1321,7 +1326,7 @@ class LatentDiffusion(DDPM):
         use_ddim = ddim_steps is not None
 
         log = dict()
-        z, c, x, xrec, xc, b = self.get_input(batch, self.first_stage_key,
+        z, c, x, xrec, xc, base_str = self.get_input(batch, self.first_stage_key,
                                            return_first_stage_outputs=True,
                                            force_c_encode=True,
                                            return_original_cond=True,
@@ -1375,7 +1380,13 @@ class LatentDiffusion(DDPM):
                 denoise_grid = self._get_denoise_row_from_list(z_denoise_row)
                 log["denoise_row"] = denoise_grid
             
-            uc = self.get_learned_conditioning(len(c) * [""])
+            if base_str is not None: # if get_input returned a base_str, use it
+                uc = self.get_learned_conditioning(
+                    len(c) * [""],
+                    base_string=base_str
+                )
+            else:
+                uc = self.get_learned_conditioning(len(c) * [""])
             sample_scaled, _ = self.sample_log(cond=c, 
                                                batch_size=N, 
                                                ddim=use_ddim, 

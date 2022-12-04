@@ -185,7 +185,10 @@ class PersonalizedBase(Dataset):
             with open(image_description_paths[0], 'r') as fh:
                 for line in fh.readlines():
                     vals = line.split()
-                    self.image_base_strings[vals[0]] = vals[1]
+                    if len(vals) == 2:
+                        self.image_base_strings[vals[0]] = vals[1]
+            if len(self.image_base_strings.keys()) != self.num_images:
+                print(f"Error: {len(self.image_base_strings.keys())} base words specified for {self.num_images} input images")
                 
     def __len__(self):
         return self._length
@@ -230,6 +233,7 @@ class PersonalizedBase(Dataset):
         example["image"] = (image / 127.5 - 1.0).astype(np.float32)
 
         if self.has_base_embs:
+            cur_img_path = cur_img_path.split('/')[-1]
             example["base_string"] = self.image_base_strings[cur_img_path]
 
         return example
