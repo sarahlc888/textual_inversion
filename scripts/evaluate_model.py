@@ -46,6 +46,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--base_word",
+        type=str,
+        nargs="?",
+        default=None,
+        help="the baseword to use for any specified placeholder strings"
+    )
+
+    parser.add_argument(
         "--ckpt_path", 
         type=str, 
         default="/data/pretrained_models/ldm/text2img-large/model.ckpt", 
@@ -75,13 +83,14 @@ if __name__ == "__main__":
     evaluator = LDMCLIPEvaluator(device)
 
     prompt = opt.prompt
+    base_word = opt.base_word 
 
     data_loader = PersonalizedBase(opt.data_dir, size=256, flip_p=0.0)
 
     images = [torch.from_numpy(data_loader[i]["image"]).permute(2, 0, 1) for i in range(data_loader.num_images)]
     images = torch.stack(images, axis=0)
 
-    sim_img, sim_text = evaluator.evaluate(model, images, opt.prompt)
+    sim_img, sim_text = evaluator.evaluate(model, images, opt.prompt, base_word=base_word)
 
     output_dir = os.path.join(opt.out_dir, prompt.replace(" ", "-"))
 
