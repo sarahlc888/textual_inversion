@@ -9,7 +9,6 @@ from torchvision.utils import make_grid
 
 from ldm.util import instantiate_from_config
 from ldm.models.diffusion.ddim import DDIMSampler
-from ldm.models.diffusion.plms import PLMSSampler
 
 def load_model_from_config(config, ckpt, verbose=False):
     print(f"Loading model from {ckpt}")
@@ -31,83 +30,6 @@ def load_model_from_config(config, ckpt, verbose=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--prompt",
-        type=str,
-        nargs="?",
-        default="a painting of a virus monster playing guitar",
-        help="the prompt to render"
-    )
-
-    parser.add_argument(
-        "--base_word",
-        type=str,
-        nargs="?",
-        default=None,
-        help="the baseword to use for any specified placeholder strings"
-    )
-
-    parser.add_argument(
-        "--outdir",
-        type=str,
-        nargs="?",
-        help="dir to write results to",
-        default="outputs/txt2img-samples"
-    )
-    parser.add_argument(
-        "--ddim_steps",
-        type=int,
-        default=200,
-        help="number of ddim sampling steps",
-    )
-
-    parser.add_argument(
-        "--plms",
-        action='store_true',
-        help="use plms sampling",
-    )
-
-    parser.add_argument(
-        "--ddim_eta",
-        type=float,
-        default=0.0,
-        help="ddim eta (eta=0.0 corresponds to deterministic sampling",
-    )
-    parser.add_argument(
-        "--n_iter",
-        type=int,
-        default=1,
-        help="sample this often",
-    )
-
-    parser.add_argument(
-        "--H",
-        type=int,
-        default=256,
-        help="image height, in pixel space",
-    )
-
-    parser.add_argument(
-        "--W",
-        type=int,
-        default=256,
-        help="image width, in pixel space",
-    )
-
-    parser.add_argument(
-        "--n_samples",
-        type=int,
-        default=4,
-        help="how many samples to produce for the given prompt",
-    )
-
-    parser.add_argument(
-        "--scale",
-        type=float,
-        default=5.0,
-        help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
-    )
 
     parser.add_argument(
         "--ckpt_path", 
