@@ -92,7 +92,5 @@ if __name__ == "__main__":
 
     sim_img, sim_text = evaluator.evaluate(model, images, opt.prompt, base_word=base_word)
 
-    output_dir = os.path.join(opt.out_dir, prompt.replace(" ", "-"))
-
     print("Image similarity: ", sim_img)
     print("Text similarity: ", sim_text)

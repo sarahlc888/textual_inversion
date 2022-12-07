@@ -87,7 +87,7 @@ class EmbeddingManager(nn.Module):
                 self.string_to_token_dict[placeholder_string] = token
                 self.string_to_param_dict[placeholder_string] = token_params_delta
 
-                self.initial_embeddings = torch.nn.Parameter(torch.zeros(size=(num_vectors_per_token, token_dim), requires_grad=False))
+                self.initial_embeddings[placeholder_string] = torch.nn.Parameter(torch.zeros(size=(num_vectors_per_token, token_dim), requires_grad=False))
 
             # TODO: put the other stuff back
         self.get_token_for_string = get_token_for_string
