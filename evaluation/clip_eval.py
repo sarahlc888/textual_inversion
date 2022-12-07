@@ -63,7 +63,7 @@ class LDMCLIPEvaluator(CLIPEvaluator):
     def __init__(self, device, clip_model='ViT-B/32') -> None:
         super().__init__(device, clip_model)
 
-    def evaluate(self, ldm_model, src_images, target_text, n_samples=64, n_steps=50):
+    def evaluate(self, ldm_model, src_images, target_text, base_word=None, n_samples=64, n_steps=50):
         
         sampler = DDIMSampler(ldm_model)
 
@@ -77,7 +77,16 @@ class LDMCLIPEvaluator(CLIPEvaluator):
                 uc = ldm_model.get_learned_conditioning(samples_per_batch * [""])
 
                 for batch in range(n_batches):
-                    c = ldm_model.get_learned_conditioning(samples_per_batch * [target_text])
+                    if base_word is not None:
+                        c = ldm_model.get_learned_conditioning(
+                            samples_per_batch * [target_text],
+                            samples_per_batch * [base_word],
+                        )
+                    else:
+                        c = ldm_model.get_learned_conditioning(
+                            samples_per_batch * [target_text]
+                        )
+
                     shape = [4, 256//8, 256//8]
                     samples_ddim, _ = sampler.sample(S=n_steps,
                                                     conditioning=c,
