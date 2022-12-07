@@ -1,0 +1,10 @@
+diverse_educator_2.png educator
+diverse_accountant_0.png accountant
+diverse_accountant_1.png accountant
+diverse_educator_1.png educator
+diverse_accountant_2.png accountant
+diverse_educator_0.png educator
+base_words.txt words.txt
+diverse_caterer_2.png caterer
+diverse_caterer_0.png caterer
+diverse_caterer_1.png caterer
