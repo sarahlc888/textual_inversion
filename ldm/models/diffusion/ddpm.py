@@ -704,6 +704,12 @@ class LatentDiffusion(DDPM):
         encoder_posterior = self.encode_first_stage(x)
         z = self.get_first_stage_encoding(encoder_posterior).detach()
 
+        base_strings = None 
+        if "base_string" in batch:
+            base_strings = batch["base_string"]
+            if bs is not None:
+                base_strings = base_strings[:bs]
+
         if self.model.conditioning_key is not None: # should always be used bc conditioning_key=crossattn
             if cond_key is None:
                 cond_key = self.cond_stage_key # "caption" in default
@@ -718,11 +724,18 @@ class LatentDiffusion(DDPM):
                 xc = x
             if not self.cond_stage_trainable or force_c_encode:
                 print("WARNING: self.get_learned_conditioning called in unexpected way")
-                if isinstance(xc, dict) or isinstance(xc, list):
-                    # import pudb; pudb.set_trace()
-                    c = self.get_learned_conditioning(xc)
+                if base_strings is not None:
+                    if isinstance(xc, dict) or isinstance(xc, list):
+                        # import pudb; pudb.set_trace()
+                        c = self.get_learned_conditioning(xc, base_string=base_strings)
+                    else:
+                        c = self.get_learned_conditioning(xc.to(self.device), base_string=base_strings)
                 else:
-                    c = self.get_learned_conditioning(xc.to(self.device))
+                    if isinstance(xc, dict) or isinstance(xc, list):
+                        # import pudb; pudb.set_trace()
+                        c = self.get_learned_conditioning(xc)
+                    else:
+                        c = self.get_learned_conditioning(xc.to(self.device))
             else:
                 c = xc # c is the caption value now
             if bs is not None:
@@ -747,13 +760,7 @@ class LatentDiffusion(DDPM):
             out.append(xc)
 
         # add the base embedding for the batch, or None
-        if "base_string" in batch:
-            base_strings = batch["base_string"]
-            if bs is not None:
-                base_strings = base_strings[:bs]
-            out.append(base_strings)
-        else:
-            out.append(None)
+        out.append(base_strings)
         return out
 
     @torch.no_grad()
