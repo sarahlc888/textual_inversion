@@ -1,0 +1,16 @@
+doc0.jpeg doctor
+doc1.jpeg doctor
+doc2.jpeg doctor
+doc3.jpeg doctor
+doc4.jpeg doctor
+doc5.jpeg doctor
+doc6.jpeg doctor
+chef0.jpeg chef
+chef1.jpeg chef
+chef2.jpeg chef
+lawyer0.jpeg lawyer
+lawyer1.jpeg lawyer
+lawyer3.jpeg lawyer
+politician0.jpeg politician
+politician1.jpeg politician
+politician2.jpeg politician
