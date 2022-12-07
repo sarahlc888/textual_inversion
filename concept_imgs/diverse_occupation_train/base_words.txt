@@ -342,7 +342,6 @@ diverse_banker_1.png banker
 diverse_surveyor_2.png surveyor
 diverse_guide_0.png guide
 diverse_landlord_1.png landlord
-.DS_Store Store
 diverse_police_2.png police
 diverse_operator_1.png operator
 diverse_receptionist_1.png receptionist
