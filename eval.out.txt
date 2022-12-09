@@ -1,0 +1,11 @@
+emb_file	base_word	sim_img
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-499.pt	president	0.5835
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-499.pt	doctor	0.8862
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-499.pt	chef	0.7949
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-499.pt	ambassador	0.4792
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-499.pt	lawyer	0.7896
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-999.pt	president	0.61865234375
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-999.pt	doctor	0.89697265625
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-999.pt	chef	0.806640625
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-999.pt	ambassador	0.52734375
+logs/woman_occupation32022-12-07T05-57-52_test_run2/checkpoints/embeddings_gs-999.pt	lawyer	0.80419921875

@@ -74,7 +74,7 @@ class LDMCLIPEvaluator(CLIPEvaluator):
         all_samples=list()
         with torch.no_grad():
             with ldm_model.ema_scope():                
-                uc = ldm_model.get_learned_conditioning(samples_per_batch * [""])
+                uc = ldm_model.get_learned_conditioning(samples_per_batch * [""], base_string=base_word)
 
                 for batch in range(n_batches):
                     if base_word is not None:
@@ -105,7 +105,8 @@ class LDMCLIPEvaluator(CLIPEvaluator):
         all_samples = torch.cat(all_samples, axis=0)
 
         sim_samples_to_img  = self.img_to_img_similarity(src_images, all_samples)
-        sim_samples_to_text = self.txt_to_img_similarity(target_text.replace("*", ""), all_samples)
+        # sim_samples_to_text = self.txt_to_img_similarity(target_text.replace("*", ""), all_samples)
+        sim_samples_to_text = None 
 
         return sim_samples_to_img, sim_samples_to_text
 
